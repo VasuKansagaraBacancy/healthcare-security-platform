@@ -9,6 +9,7 @@ Production-ready Next.js 16 application for healthcare organizations to manage c
 - Supabase PostgreSQL + Supabase Auth + RLS
 - Recharts for analytics visualizations
 - Zod for request and form validation
+- OpenAI Chat Completions API for the AI assistant
 - Vercel deployment target
 
 ## Features
@@ -33,12 +34,14 @@ Production-ready Next.js 16 application for healthcare organizations to manage c
 - Security alerts system with notification badge and dashboard alert panel
 - Backup and recovery monitoring with job history and status tracking
 - Expanded dashboard analytics for risk, vulnerability, incident, and training trends
+- AI cybersecurity assistant chatbot with organization-scoped security context
 
 ## Project Structure
 
 ```text
 app/
   api/
+    ai/
     alerts/
     audit-logs/
     backups/
@@ -77,6 +80,7 @@ components/
     VendorForm.tsx
     VulnerabilityForm.tsx
   AppShell.tsx
+  ai-chatbot.tsx
   Charts.tsx
   DashboardCards.tsx
   DistributionChart.tsx
@@ -110,6 +114,7 @@ Create `.env.local` from `.env.example`:
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=your-supabase-project-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+OPENAI_API_KEY=your-openai-api-key
 ```
 
 ## Supabase Setup
@@ -190,6 +195,7 @@ The seed now populates both the core and enterprise modules:
 
 ### Enterprise additions
 
+- `POST /api/ai/chat`
 - `GET /api/risk`
 - `GET /api/audit-logs?user=<uuid>&action=<text>`
 - `GET|POST|PATCH|DELETE /api/vendors`
@@ -226,3 +232,39 @@ Apply the SQL files in this order:
 - Risk score formula implemented:
   - `(critical vulnerabilities x 5) + (high vulnerabilities x 3) + (medium vulnerabilities x 2) + (open incidents x 4)`
 - Reports are generated from live application data and returned as JSON for downstream workflows.
+
+## AI Assistant
+
+The dashboard includes a floating AI chatbot launcher. The assistant:
+
+- keeps client-side conversation history for the current session
+- sends the latest user message plus recent chat history to `POST /api/ai/chat`
+- builds structured organization context from platform data such as risk score, vulnerabilities, incidents, compliance score, vendor risk, alerts, and devices
+- uses the OpenAI API from the backend only
+- does not send raw SQL queries to the model
+
+### AI Setup
+
+1. Add `OPENAI_API_KEY` to `.env.local`
+2. Restart the Next.js server
+3. Open `/dashboard`
+4. Click the floating `AI assistant` button
+
+### Example AI Context Queries
+
+The backend computes context equivalent to:
+
+- total vulnerabilities
+- high, medium, and critical vulnerability counts
+- open incidents
+- latest risk score
+- compliance score
+- highest-risk vendors
+
+### Example Questions
+
+- `What is our current security risk?`
+- `Which vulnerabilities are most critical?`
+- `How can we improve our security score?`
+- `Explain the latest security incident.`
+- `Which vendors have the highest risk?`

@@ -1,5 +1,6 @@
 import { updateAlertStatusAction } from "@/app/actions";
 import { AppShell } from "@/components/AppShell";
+import { AiChatbot } from "@/components/ai-chatbot";
 import { Charts } from "@/components/Charts";
 import { DashboardCards } from "@/components/DashboardCards";
 import { getDashboardData } from "@/lib/data";
@@ -21,6 +22,8 @@ export default async function DashboardPage() {
       userEmail={data.currentUser.email}
       notificationCount={data.openAlerts.length}
     >
+      <AiChatbot />
+
       <section className="glass-panel overflow-hidden rounded-[32px] p-6 sm:p-7">
         <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
           <div>

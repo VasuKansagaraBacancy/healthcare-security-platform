@@ -136,3 +136,13 @@ export const reportQuerySchema = z.object({
   type: z.enum(["executive", "operations", "compliance"]).default("executive"),
   format: z.enum(["json"]).default("json"),
 });
+
+export const aiChatMessageSchema = z.object({
+  role: z.enum(["user", "assistant"]),
+  content: z.string().min(1).max(2000),
+});
+
+export const aiChatRequestSchema = z.object({
+  message: z.string().min(1).max(2000),
+  history: z.array(aiChatMessageSchema).max(12).optional(),
+});
