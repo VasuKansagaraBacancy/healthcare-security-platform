@@ -5,6 +5,7 @@ import { createServerSupabaseClient, isSupabaseConfigured } from "@/lib/supabase
 import { logUserActivity } from "@/lib/observability";
 import { createRiskAssessmentSnapshot } from "@/lib/risk";
 import {
+  createInviteSchema,
   createBackupJobSchema,
   createComplianceCheckSchema,
   createDeviceSchema,
@@ -23,6 +24,7 @@ import {
 } from "@/lib/validation";
 import type {
   BackupJob,
+  OrganizationInvite,
   SecurityAlertStatus,
   TrainingRecord,
   UserProfile,
@@ -465,6 +467,48 @@ export async function updateUserRole(userId: string, role: UserRole) {
     action: "user_role_updated",
     module: "users",
     auditAction: `user_role_updated:${userId}:${role}`,
+  });
+
+  return data;
+}
+
+export async function createOrganizationInvite(payload: unknown) {
+  const input = createInviteSchema.parse(payload);
+  const { supabase, profile } = await getActorContext("manage_users");
+
+  const { data: existingInvite } = await supabase
+    .from("organization_invites")
+    .select("id")
+    .eq("organization_id", profile.organization_id)
+    .eq("status", "pending")
+    .ilike("email", input.email)
+    .maybeSingle();
+
+  if (existingInvite) {
+    throw new Error("A pending invite already exists for this email address.");
+  }
+
+  const { data, error } = await supabase
+    .from("organization_invites")
+    .insert({
+      organization_id: profile.organization_id,
+      email: input.email,
+      role: input.role,
+      invited_by: profile.id,
+    })
+    .select("*")
+    .single<OrganizationInvite>();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  await trackActivity({
+    userId: profile.id,
+    organizationId: profile.organization_id,
+    action: "user_invited",
+    module: "users",
+    auditAction: `user_invited:${data.email}:${data.role}`,
   });
 
   return data;

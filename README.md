@@ -74,6 +74,7 @@ components/
     ComplianceForm.tsx
     DeviceForm.tsx
     IncidentForm.tsx
+    InviteUserForm.tsx
     LoginForm.tsx
     RegisterForm.tsx
     TrainingRecordForm.tsx
@@ -100,6 +101,7 @@ lib/
   validation.ts
 supabase/
   enterprise_phase2.sql
+  invite_onboarding.sql
   schema.sql
   seed.sql
 types/
@@ -122,10 +124,11 @@ OPENAI_API_KEY=your-openai-api-key
 1. Create a new Supabase project.
 2. In the Supabase SQL editor, run `supabase/schema.sql`.
 3. Run `supabase/enterprise_phase2.sql`.
-4. Enable email/password authentication in Supabase Auth.
-5. Copy the project URL and anon key into `.env.local`.
-6. Register one user in the app.
-7. In the Supabase SQL editor, open `supabase/seed.sql`, replace `admin@hospital.org` with that registered email, and run it.
+4. Run `supabase/invite_onboarding.sql` if your project was already created from an older schema.
+5. Enable email/password authentication in Supabase Auth.
+6. Copy the project URL and anon key into `.env.local`.
+7. Register one admin user in the app.
+8. In the Supabase SQL editor, open `supabase/seed.sql`, replace `admin@hospital.org` with that registered email, and run it.
 
 ### New Database Tables
 
@@ -215,7 +218,8 @@ Apply the SQL files in this order:
 
 1. `supabase/schema.sql`
 2. `supabase/enterprise_phase2.sql`
-3. `supabase/seed.sql` (optional demo data)
+3. `supabase/invite_onboarding.sql`
+4. `supabase/seed.sql` (optional demo data)
 
 ## Deploy to Vercel
 
@@ -229,6 +233,7 @@ Apply the SQL files in this order:
 
 - The app uses Server Components for reads, server actions for internal UI mutations, and route handlers where REST endpoints are explicitly useful.
 - Route protection and automatic page-view activity logging are handled in `proxy.ts`.
+- Initial registration creates the organization and first admin user. Additional users should join through admin-generated invite links.
 - Risk score formula implemented:
   - `(critical vulnerabilities x 5) + (high vulnerabilities x 3) + (medium vulnerabilities x 2) + (open incidents x 4)`
 - Reports are generated from live application data and returned as JSON for downstream workflows.

@@ -13,7 +13,7 @@ export default async function LoginPage() {
 
   return (
     <main className="section-grid min-h-screen p-4 sm:p-6">
-      <div className="mx-auto grid min-h-[calc(100vh-3rem)] w-full max-w-5xl items-center gap-6 lg:grid-cols-2">
+      <div className="mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-2xl items-center">
         <section className="glass-panel rounded-[32px] p-8 sm:p-10 lg:p-12">
           <p className="font-mono text-xs uppercase tracking-[0.28em] text-teal-300">
             Access command center
@@ -26,19 +26,12 @@ export default async function LoginPage() {
             <LoginForm />
           </div>
         </section>
-
-        <section className="space-y-6">
-          <div className="glass-panel rounded-[32px] p-8 sm:p-9">
-            <h2 className="text-2xl font-semibold text-white">Platform capabilities</h2>
-            <ul className="mt-6 space-y-4 text-sm leading-7 text-slate-300">
-              <li>Protected routes with Supabase sessions</li>
-              <li>Multi-tenant data access controlled with RLS</li>
-              <li>Operational dashboards for devices, incidents, and compliance</li>
-            </ul>
-          </div>
-          {!isSupabaseConfigured() ? <SetupNotice /> : null}
-        </section>
       </div>
+      {!isSupabaseConfigured() ? (
+        <div className="mx-auto mt-6 w-full max-w-2xl">
+          <SetupNotice />
+        </div>
+      ) : null}
     </main>
   );
 }

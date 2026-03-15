@@ -5,21 +5,30 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { registerAction, type ActionResult } from "@/app/actions";
+import type { InviteDetails } from "@/types/database";
 
 interface RegisterValues {
-  organizationName: string;
+  organizationName?: string;
   email: string;
   password: string;
-  role: "admin" | "analyst" | "auditor";
+  inviteToken?: string;
 }
 
-export function RegisterForm() {
+export function RegisterForm({
+  invite,
+  inviteToken,
+}: {
+  invite?: InviteDetails | null;
+  inviteToken?: string | null;
+}) {
   const router = useRouter();
   const [result, setResult] = useState<ActionResult | null>(null);
   const [isPending, startTransition] = useTransition();
   const { register, handleSubmit } = useForm<RegisterValues>({
     defaultValues: {
-      role: "admin",
+      organizationName: invite ? undefined : "",
+      email: invite?.email ?? "",
+      inviteToken: undefined,
     },
   });
 
@@ -37,19 +46,33 @@ export function RegisterForm() {
       })}
       className="space-y-6"
     >
-      <div>
-        <label className="mb-2.5 block text-sm font-medium text-slate-200">Organization name</label>
-        <input
-          {...register("organizationName", { required: true })}
-          className="w-full rounded-2xl border border-white/10 bg-slate-950/50 px-4 py-3.5 text-white outline-none transition focus:border-teal-300/40"
-          placeholder="Meditology Health"
-        />
-      </div>
+      {invite ? (
+        <input {...register("inviteToken")} type="hidden" defaultValue={inviteToken ?? ""} />
+      ) : null}
+      {invite ? (
+        <div className="rounded-2xl border border-teal-300/20 bg-teal-300/10 p-4">
+          <p className="font-mono text-xs uppercase tracking-[0.18em] text-teal-100">Invite</p>
+          <p className="mt-2 text-sm text-white">Organization: {invite.organization_name}</p>
+          <p className="mt-1 text-sm text-white">
+            Assigned role: {invite.role === "analyst" ? "Security Analyst" : invite.role === "auditor" ? "Viewer / Staff" : "Admin"}
+          </p>
+        </div>
+      ) : (
+        <div>
+          <label className="mb-2.5 block text-sm font-medium text-slate-200">Organization name</label>
+          <input
+            {...register("organizationName", { required: !invite })}
+            className="w-full rounded-2xl border border-white/10 bg-slate-950/50 px-4 py-3.5 text-white outline-none transition focus:border-teal-300/40"
+            placeholder="Meditology Health"
+          />
+        </div>
+      )}
       <div>
         <label className="mb-2.5 block text-sm font-medium text-slate-200">Email</label>
         <input
           {...register("email", { required: true })}
           type="email"
+          readOnly={Boolean(invite)}
           className="w-full rounded-2xl border border-white/10 bg-slate-950/50 px-4 py-3.5 text-white outline-none transition focus:border-teal-300/40"
           placeholder="admin@hospital.org"
         />
@@ -63,17 +86,6 @@ export function RegisterForm() {
           placeholder="Minimum 8 characters"
         />
       </div>
-      <div>
-        <label className="mb-2.5 block text-sm font-medium text-slate-200">Initial role</label>
-        <select
-          {...register("role", { required: true })}
-          className="w-full rounded-2xl border border-white/10 bg-slate-950/50 px-4 py-3.5 text-white outline-none transition focus:border-teal-300/40"
-        >
-          <option value="admin">Admin</option>
-          <option value="analyst">Security Analyst</option>
-          <option value="auditor">Viewer / Staff</option>
-        </select>
-      </div>
       {result ? (
         <p className={`text-sm leading-6 ${result.success ? "text-emerald-300" : "text-rose-300"}`}>
           {result.message}
@@ -84,7 +96,7 @@ export function RegisterForm() {
         disabled={isPending}
         className="w-full rounded-2xl bg-teal-400 px-5 py-3.5 text-sm font-semibold text-slate-950 transition hover:bg-teal-300 disabled:cursor-not-allowed disabled:opacity-70"
       >
-        {isPending ? "Creating workspace..." : "Register"}
+        {isPending ? (invite ? "Accepting invite..." : "Creating workspace...") : invite ? "Join organization" : "Create workspace"}
       </button>
       <p className="text-sm text-slate-400">
         Already onboarded?{" "}

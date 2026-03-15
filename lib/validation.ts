@@ -43,6 +43,7 @@ export const trainingCompletionStatusSchema = z.enum([
 ]);
 export const securityAlertStatusSchema = z.enum(["open", "acknowledged", "resolved"]);
 export const backupJobStatusSchema = z.enum(["success", "warning", "failed", "running"]);
+export const inviteStatusSchema = z.enum(["pending", "accepted", "revoked"]);
 
 export const loginSchema = z.object({
   email: z.email(),
@@ -50,10 +51,22 @@ export const loginSchema = z.object({
 });
 
 export const registerSchema = loginSchema.extend({
-  organizationName: z
-    .string()
-    .min(2, "Organization name must be at least 2 characters."),
-  role: roleSchema.default("admin"),
+  organizationName: z.string().min(2, "Organization name must be at least 2 characters.").optional(),
+  role: roleSchema.optional(),
+  inviteToken: z.uuid().optional(),
+}).superRefine((value, ctx) => {
+  if (!value.inviteToken && !value.organizationName) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["organizationName"],
+      message: "Organization name is required when creating a workspace.",
+    });
+  }
+});
+
+export const createInviteSchema = z.object({
+  email: z.email(),
+  role: roleSchema,
 });
 
 export const createDeviceSchema = z.object({

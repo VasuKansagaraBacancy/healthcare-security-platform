@@ -15,6 +15,7 @@ create type public.vulnerability_status as enum ('open', 'investigating', 'remed
 create type public.incident_severity as enum ('low', 'medium', 'high', 'critical');
 create type public.incident_status as enum ('open', 'investigating', 'mitigated', 'closed');
 create type public.compliance_status as enum ('compliant', 'in_progress', 'at_risk', 'non_compliant');
+create type public.invite_status as enum ('pending', 'accepted', 'revoked');
 
 create table if not exists public.organizations (
   id uuid primary key default gen_random_uuid(),
@@ -28,6 +29,18 @@ create table if not exists public.users (
   role public.user_role not null default 'analyst',
   organization_id uuid references public.organizations(id) on delete set null,
   created_at timestamptz not null default now()
+);
+
+create table if not exists public.organization_invites (
+  id uuid primary key default gen_random_uuid(),
+  organization_id uuid not null references public.organizations(id) on delete cascade,
+  email text not null,
+  role public.user_role not null,
+  invited_by uuid references public.users(id) on delete set null,
+  token uuid not null unique default gen_random_uuid(),
+  status public.invite_status not null default 'pending',
+  invited_at timestamptz not null default now(),
+  accepted_at timestamptz
 );
 
 create table if not exists public.devices (
@@ -78,6 +91,9 @@ create table if not exists public.audit_logs (
 );
 
 create index if not exists idx_users_organization_id on public.users (organization_id);
+create index if not exists idx_org_invites_org_status on public.organization_invites (organization_id, status, invited_at desc);
+create unique index if not exists idx_org_invites_pending_email on public.organization_invites (organization_id, lower(email))
+where status = 'pending';
 create index if not exists idx_devices_organization_created on public.devices (organization_id, created_at desc);
 create index if not exists idx_vulnerabilities_device_status on public.vulnerabilities (device_id, status, severity);
 create index if not exists idx_incidents_org_status on public.incidents (organization_id, status, severity);
@@ -111,6 +127,25 @@ as $$
   );
 $$;
 
+create or replace function public.get_pending_invite_details(invite_token uuid)
+returns table (
+  email text,
+  role public.user_role,
+  organization_name text
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select invites.email, invites.role, organizations.name
+  from public.organization_invites invites
+  join public.organizations on organizations.id = invites.organization_id
+  where invites.token = invite_token
+    and invites.status = 'pending'
+  limit 1;
+$$;
+
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -120,18 +155,36 @@ as $$
 declare
   new_org_id uuid;
   requested_role public.user_role;
+  invite_token uuid;
+  matched_invite public.organization_invites;
 begin
-  requested_role :=
-    coalesce((new.raw_user_meta_data ->> 'role')::public.user_role, 'admin'::public.user_role);
+  invite_token := nullif(new.raw_user_meta_data ->> 'invite_token', '')::uuid;
 
-  insert into public.organizations (name)
-  values (
-    coalesce(
-      nullif(new.raw_user_meta_data ->> 'organization_name', ''),
-      split_part(new.email, '@', 1) || ' Health'
+  if invite_token is not null then
+    select *
+    into matched_invite
+    from public.organization_invites
+    where token = invite_token
+      and status = 'pending'
+      and lower(email) = lower(new.email)
+    limit 1;
+  end if;
+
+  if matched_invite.id is not null then
+    new_org_id := matched_invite.organization_id;
+    requested_role := matched_invite.role;
+  else
+    requested_role := 'admin'::public.user_role;
+
+    insert into public.organizations (name)
+    values (
+      coalesce(
+        nullif(new.raw_user_meta_data ->> 'organization_name', ''),
+        split_part(new.email, '@', 1) || ' Health'
+      )
     )
-  )
-  returning id into new_org_id;
+    returning id into new_org_id;
+  end if;
 
   insert into public.users (id, email, role, organization_id)
   values (new.id, new.email, requested_role, new_org_id)
@@ -140,8 +193,22 @@ begin
       role = excluded.role,
       organization_id = coalesce(public.users.organization_id, excluded.organization_id);
 
+  if matched_invite.id is not null then
+    update public.organization_invites
+    set status = 'accepted',
+        accepted_at = now()
+    where id = matched_invite.id;
+  end if;
+
   insert into public.audit_logs (user_id, organization_id, action)
-  values (new.id, new_org_id, 'user_registered');
+  values (
+    new.id,
+    new_org_id,
+    case
+      when matched_invite.id is not null then 'user_joined_via_invite'
+      else 'user_registered'
+    end
+  );
 
   return new;
 end;
@@ -154,6 +221,7 @@ for each row execute procedure public.handle_new_user();
 
 alter table public.organizations enable row level security;
 alter table public.users enable row level security;
+alter table public.organization_invites enable row level security;
 alter table public.devices enable row level security;
 alter table public.vulnerabilities enable row level security;
 alter table public.incidents enable row level security;
@@ -178,6 +246,25 @@ for update
 to authenticated
 using (id = auth.uid() or public.is_org_admin())
 with check (organization_id = public.current_org_id());
+
+create policy "organization_invites_select_same_org_admin"
+on public.organization_invites
+for select
+to authenticated
+using (organization_id = public.current_org_id() and public.is_org_admin());
+
+create policy "organization_invites_insert_same_org_admin"
+on public.organization_invites
+for insert
+to authenticated
+with check (organization_id = public.current_org_id() and public.is_org_admin());
+
+create policy "organization_invites_update_same_org_admin"
+on public.organization_invites
+for update
+to authenticated
+using (organization_id = public.current_org_id() and public.is_org_admin())
+with check (organization_id = public.current_org_id() and public.is_org_admin());
 
 create policy "devices_select_same_org"
 on public.devices

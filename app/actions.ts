@@ -1,8 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { createServerSupabaseClient, isSupabaseConfigured } from "@/lib/supabaseClient";
 import {
+  createOrganizationInvite,
   createBackupJob,
   createComplianceCheck,
   createDevice,
@@ -20,10 +22,12 @@ import {
   updateVulnerability,
 } from "@/lib/mutations";
 import { logUserActivity } from "@/lib/observability";
+import { getPendingInviteDetails } from "@/lib/data";
 import {
   createBackupJobSchema,
   createComplianceCheckSchema,
   createDeviceSchema,
+  createInviteSchema,
   createIncidentSchema,
   createTrainingRecordSchema,
   createVendorSchema,
@@ -43,6 +47,7 @@ export interface ActionResult {
   success: boolean;
   message: string;
   redirectTo?: string;
+  inviteLink?: string;
 }
 
 function notConfiguredResult(): ActionResult {
@@ -86,14 +91,34 @@ export async function registerAction(payload: unknown): Promise<ActionResult> {
   }
 
   const input = registerSchema.parse(payload);
+  const invite = input.inviteToken ? await getPendingInviteDetails(input.inviteToken) : null;
+
+  if (input.inviteToken && !invite) {
+    return {
+      success: false,
+      message: "This invite is invalid, expired, or already used.",
+    };
+  }
+
+  if (invite && invite.email.toLowerCase() !== input.email.toLowerCase()) {
+    return {
+      success: false,
+      message: "This invite can only be used with the invited email address.",
+    };
+  }
+
   const supabase = await createServerSupabaseClient();
   const { data, error } = await supabase.auth.signUp({
     email: input.email,
     password: input.password,
     options: {
       data: {
-        organization_name: input.organizationName,
-        role: input.role,
+        ...(input.inviteToken
+          ? { invite_token: input.inviteToken }
+          : {
+              organization_name: input.organizationName,
+              role: "admin",
+            }),
       },
     },
   });
@@ -113,10 +138,40 @@ export async function registerAction(payload: unknown): Promise<ActionResult> {
   return {
     success: true,
     message: data.session
-      ? "Account created. Redirecting to your dashboard."
-      : "Account created. Check your email to confirm the session.",
+      ? invite
+        ? "Invite accepted. Redirecting to your dashboard."
+        : "Workspace created. Redirecting to your dashboard."
+      : invite
+        ? "Invite accepted. Check your email to confirm the session."
+        : "Workspace created. Check your email to confirm the session.",
     redirectTo: data.session ? "/dashboard" : "/login",
   };
+}
+
+function buildAbsoluteUrl() {
+  return headers().then((headerStore) => {
+    const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host") ?? "localhost:3000";
+    const protocol = headerStore.get("x-forwarded-proto") ?? "http";
+    return `${protocol}://${host}`;
+  });
+}
+
+export async function createInviteAction(payload: unknown): Promise<ActionResult> {
+  try {
+    const invite = await createOrganizationInvite(createInviteSchema.parse(payload));
+    const baseUrl = await buildAbsoluteUrl();
+    revalidatePath("/users");
+    return {
+      success: true,
+      message: "Invite link created successfully.",
+      inviteLink: `${baseUrl}/register?invite=${invite.token}`,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Failed to create invite.",
+    };
+  }
 }
 
 export async function logoutAction() {

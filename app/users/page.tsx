@@ -1,5 +1,7 @@
+import { headers } from "next/headers";
 import { AppShell } from "@/components/AppShell";
 import { updateUserRoleAction } from "@/app/actions";
+import { InviteUserForm } from "@/components/forms/InviteUserForm";
 import { getOrganizationUsers } from "@/lib/data";
 import { requireAdmin } from "@/lib/auth";
 import { getRoleLabel } from "@/lib/permissions";
@@ -7,6 +9,10 @@ import { getRoleLabel } from "@/lib/permissions";
 export default async function UsersPage() {
   await requireAdmin();
   const data = await getOrganizationUsers();
+  const headerStore = await headers();
+  const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host") ?? "localhost:3000";
+  const protocol = headerStore.get("x-forwarded-proto") ?? "http";
+  const baseUrl = `${protocol}://${host}`;
 
   return (
     <AppShell
@@ -34,8 +40,40 @@ export default async function UsersPage() {
             </p>
           </div>
           <div className="mt-6 rounded-3xl border border-orange-400/20 bg-orange-400/8 p-5 text-sm text-slate-300">
-            Invite and account deletion are not enabled in this build. Current admin controls cover
-            role governance for users already registered into the organization.
+            Admins can now generate invite links for new users. Each invite pre-assigns the role,
+            and the invited user joins the existing organization instead of creating a new one.
+          </div>
+        </article>
+
+        <article className="glass-panel rounded-[28px] p-6 sm:p-7">
+          <p className="font-mono text-xs uppercase tracking-[0.24em] text-orange-300">
+            Invite users
+          </p>
+          <h3 className="mt-2 text-xl font-semibold text-white">Admin invite flow</h3>
+          <p className="mt-3 text-sm leading-7 text-slate-400">
+            Create an invite link, share it with the user, and let them join with the role already assigned.
+          </p>
+          <div className="mt-6">
+            <InviteUserForm />
+          </div>
+          <div className="mt-8 space-y-4">
+            <p className="font-mono text-xs uppercase tracking-[0.18em] text-slate-400">
+              Pending invites
+            </p>
+            {data.invites.map((invite) => (
+              <div key={invite.id} className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
+                <p className="text-sm font-medium text-white">{invite.email}</p>
+                <p className="mt-2 text-xs uppercase tracking-[0.18em] text-slate-500">
+                  {getRoleLabel(invite.role)} | Invited {new Date(invite.invited_at).toLocaleDateString()}
+                </p>
+                <p className="mt-3 break-all text-sm text-slate-300">
+                  {baseUrl}/register?invite={invite.token}
+                </p>
+              </div>
+            ))}
+            {data.invites.length === 0 ? (
+              <p className="text-sm text-slate-400">No pending invites right now.</p>
+            ) : null}
           </div>
         </article>
 

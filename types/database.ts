@@ -27,6 +27,7 @@ export type TrainingCompletionStatus =
   | "overdue";
 export type SecurityAlertStatus = "open" | "acknowledged" | "resolved";
 export type BackupJobStatus = "success" | "warning" | "failed" | "running";
+export type InviteStatus = "pending" | "accepted" | "revoked";
 
 export type Json =
   | string
@@ -77,6 +78,41 @@ export interface Database {
           role?: UserRole;
           organization_id?: string | null;
           created_at?: string;
+        };
+      };
+      organization_invites: {
+        Row: {
+          id: string;
+          organization_id: string;
+          email: string;
+          role: UserRole;
+          invited_by: string | null;
+          token: string;
+          status: InviteStatus;
+          invited_at: string;
+          accepted_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          email: string;
+          role: UserRole;
+          invited_by?: string | null;
+          token?: string;
+          status?: InviteStatus;
+          invited_at?: string;
+          accepted_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          email?: string;
+          role?: UserRole;
+          invited_by?: string | null;
+          token?: string;
+          status?: InviteStatus;
+          invited_at?: string;
+          accepted_at?: string | null;
         };
       };
       devices: {
@@ -398,6 +434,7 @@ export interface Database {
       training_completion_status: TrainingCompletionStatus;
       security_alert_status: SecurityAlertStatus;
       backup_job_status: BackupJobStatus;
+      invite_status: InviteStatus;
     };
     CompositeTypes: Record<string, never>;
   };
@@ -410,6 +447,7 @@ export type TableUpdate<T extends TableName> = Database["public"]["Tables"][T]["
 
 export type Organization = TableRow<"organizations">;
 export type UserProfile = TableRow<"users">;
+export type OrganizationInvite = TableRow<"organization_invites">;
 export type Device = TableRow<"devices">;
 export type Vulnerability = TableRow<"vulnerabilities">;
 export type Incident = TableRow<"incidents">;
@@ -472,4 +510,10 @@ export interface TrainingRecordWithUser extends TrainingRecord {
 
 export interface UserActivityLogWithUser extends UserActivityLog {
   user_email: string;
+}
+
+export interface InviteDetails {
+  email: string;
+  role: UserRole;
+  organization_name: string;
 }

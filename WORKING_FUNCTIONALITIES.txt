@@ -1,17 +1,24 @@
 Healthcare Cybersecurity Risk Management Platform
-Working Functionalities
+Implemented Features
 
 1. Authentication
 - User registration with Supabase Auth
 - User login with Supabase Auth
 - User logout
 - Session-based protected routes
+- Protected API access for authenticated users only
 
-2. Role-Based Access
-- Admin-only access to user administration
+2. Roles and Access Control
+- Role model implemented:
+  Admin
+  Security Analyst
+  Viewer / Staff
 - Role-aware sidebar navigation
 - Role-aware mobile navigation
-- Server-side protection for restricted pages
+- Hidden unauthorized modules from navigation
+- Server-side route protection for restricted pages
+- Permission-based action control for UI, server actions, and APIs
+- Read-only experience for viewer/staff where editing is not allowed
 
 3. Dashboard
 - Security score card
@@ -22,104 +29,170 @@ Working Functionalities
 - Backup status card
 - Executive posture summary
 - Risk trend chart
-- Vulnerability severity chart
+- Vulnerability severity distribution chart
 - Incident status chart
 - Training completion chart
 - Device watchlist table
 - Security alerts panel
-- Recent audit stream
+- Audit stream for allowed roles
+- Floating AI assistant button
 
 4. Devices Module
 - Add device
-- List devices
+- View devices
 - Risk level tracking
 - Organization-scoped device records
-- Devices API with CRUD support
+- Devices API
+- Role-based create/edit/view behavior
 
 5. Vulnerabilities Module
 - Add vulnerability
+- View vulnerabilities
 - Update vulnerability status
 - Filter vulnerabilities by severity
 - Device-linked vulnerability tracking
-- Vulnerabilities API with CRUD support
+- Vulnerabilities API
+- Role-based create/edit/view behavior
 
 6. Incidents Module
 - Report incident
+- View incidents
 - Assign severity
 - Update incident status
 - Incident ownership tracking
-- Incidents API with CRUD support
+- Incidents API
+- Role-based create/edit/view behavior
 
 7. Compliance Module
 - Add compliance check
-- Track compliance status
-- Track compliance score
-- Compliance API with CRUD support
+- View compliance checklist
+- Update compliance status
+- Update compliance score
+- Aggregate compliance score on dashboard
+- Compliance API
+- Role-based create/edit/view behavior
 
 8. Reports Module
-- Generate security report data
+- Generate live security report data
 - JSON report output
+- Report preview screen
+- Role-based report export control
+- Report API
 
 9. Risk Assessment Engine
-- Weighted risk score calculation
+- Weighted risk score formula
 - Historical risk assessment snapshots
-- Risk trend page
+- Risk trend chart
+- Risk page
 - Risk API endpoint
 
 10. Access Control Monitoring
-- Automatic page-view activity logging
+- Automatic page-view logging
 - User activity log storage
 - Audit logs page
 - Filter audit logs by user
 - Filter audit logs by action
 - Audit logs API endpoint
+- Role-based visibility for audit logs
 
 11. Vendor Security Management
 - Add vendor
-- List vendors
+- View vendor inventory
 - Update vendor risk level
 - Update vendor compliance status
-- Vendors API with CRUD support
+- Vendors API
+- Role-based create/edit/view behavior
 
-12. Staff Training Tracking
+12. Staff Cybersecurity Training
 - Assign training records
-- Track completion status
-- Track completion date
+- View training records
+- Update training completion status
+- Update training completion date
 - Training completion chart
-- Training API endpoint
+- Training API
+- Role-based assign/edit/view behavior
 
 13. Security Alerts
-- Alert records stored in database
-- Open alert badge count in app header
-- Alert status update from dashboard
-- Alerts API endpoint
+- Security alerts stored in database
+- Open alert badge in the header
+- Alert panel on dashboard
+- Update alert status
+- Alerts API
+- Role-based alert update behavior
 
 14. Backup and Recovery Monitoring
 - Add backup job
-- Track backup job status
+- View backup jobs
+- Update backup job status
 - Track backup size
-- Latest backup summary
-- Backups API endpoint
+- Latest backup summary card
+- Backups API
+- Role-based create/edit/view behavior
 
 15. User Administration
 - View organization users
 - Update user roles
-- Prevent non-admin access to user management page
+- Prevent non-admin access to user management
+- Prevent self-demotion from admin role
 
-16. Data Protection and Validation
+16. AI Cybersecurity Assistant
+- Floating chatbot launcher on dashboard
+- Expandable chat panel
+- Conversation history in the client session
+- User message input
+- AI response rendering
+- Loading state while AI responds
+- Starter prompt suggestions
+- Protected `POST /api/ai/chat` API
+- Organization-scoped data context for AI responses
+- OpenAI integration using `OPENAI_API_KEY`
+- AI answers based on:
+  current risk score
+  vulnerability counts
+  incident status
+  compliance score
+  vendor risk
+  alerts
+  device exposure
+
+17. Data Security and Validation
 - Supabase Row Level Security
-- Organization-scoped data access
-- Zod validation for API payloads
-- Protected API routes
+- Organization-level data isolation
+- Protected routes
+- Protected APIs
+- Zod validation for forms and API payloads
+- No raw SQL exposed to the AI assistant
 
-17. UX Enhancements
-- Responsive dashboard layout
-- Improved spacing and panel structure
-- Full-page loading skeleton while routes load
-- Seeded dummy data support for demo environments
+18. UI and UX Improvements
+- Responsive app shell
+- Improved spacing and visual hierarchy
+- Refined sidebar and navbar
+- Improved dashboard cards and chart panels
+- Read-only notices for restricted actions
+- Full-page route loading skeleton
+- Dashboard-style loading state while pages resolve
 
-18. Demo and Setup Support
+19. Seed Data and Demo Support
 - Supabase schema SQL
 - Enterprise phase 2 SQL
-- Demo seed SQL with realistic healthcare cybersecurity data
-- README setup and deployment documentation
+- Demo seed SQL
+- Realistic sample data for:
+  devices
+  vulnerabilities
+  incidents
+  compliance checks
+  vendors
+  training records
+  backup jobs
+  security alerts
+  risk assessments
+  audit logs
+  user activity logs
+
+20. Documentation and Deployment Support
+- README with setup instructions
+- Environment variable documentation
+- Local development instructions
+- Supabase migration order
+- Vercel deployment guidance
+- OpenAI API key setup instructions

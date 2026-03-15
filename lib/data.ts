@@ -11,6 +11,8 @@ import type {
   Device,
   DeviceWithCounts,
   Incident,
+  InviteDetails,
+  OrganizationInvite,
   RiskAssessment,
   SecurityAlert,
   SeverityChartPoint,
@@ -376,18 +378,25 @@ export async function getOrganizationUsers() {
     return {
       currentUser,
       users: [] as UserProfile[],
+      invites: [] as OrganizationInvite[],
       alertCount: 0,
     };
   }
 
   const supabase = await createServerSupabaseClient();
   const organizationId = currentUser.profile.organization_id!;
-  const [usersResult, alertsResult] = await Promise.all([
+  const [usersResult, invitesResult, alertsResult] = await Promise.all([
     supabase
       .from("users")
       .select("*")
       .eq("organization_id", organizationId)
       .order("created_at", { ascending: true }),
+    supabase
+      .from("organization_invites")
+      .select("*")
+      .eq("organization_id", organizationId)
+      .eq("status", "pending")
+      .order("invited_at", { ascending: false }),
     supabase
       .from("security_alerts")
       .select("id")
@@ -412,8 +421,27 @@ export async function getOrganizationUsers() {
 
       return left.email.localeCompare(right.email);
     }),
+    invites: (invitesResult.data ?? []) as OrganizationInvite[],
     alertCount: alertsResult.data?.length ?? 0,
   };
+}
+
+export async function getPendingInviteDetails(token?: string | null) {
+  if (!token || !isSupabaseConfigured()) {
+    return null;
+  }
+
+  const supabase = await createServerSupabaseClient();
+  const { data, error } = await supabase.rpc("get_pending_invite_details", {
+    invite_token: token,
+  });
+
+  if (error) {
+    return null;
+  }
+
+  const invite = Array.isArray(data) ? data[0] : data;
+  return (invite ?? null) as InviteDetails | null;
 }
 
 export async function getRiskData() {
