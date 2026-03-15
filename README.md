@@ -2,6 +2,33 @@
 
 Production-ready Next.js 16 application for healthcare organizations to manage cybersecurity risk, track vulnerabilities, monitor compliance, coordinate incident response, and extend into broader enterprise security operations. This implementation follows the scope in `../PRD.MD`.
 
+## Default Demo Credentials
+
+The platform includes preconfigured demo users for testing different roles within the Healthcare Cybersecurity Risk Management Platform.
+
+### Admin
+
+* **Email:** [vasu.kansagara@bacancy.com](mailto:vasu.kansagara@bacancy.com)
+* **Password:** Vasu4444
+* **Role:** Administrator
+* **Access:** Full system access including user management, devices, vulnerabilities, incidents, compliance, reports, and system configuration.
+
+### Security Analyst
+
+* **Email:** [kreya.j.shah@bacancy.com](mailto:kreya.j.shah@bacancy.com)
+* **Password:** Vasu4444
+* **Role:** Security Analyst
+* **Access:** Manage vulnerabilities, incidents, devices, risk assessments, and security monitoring.
+
+### Viewer / Staff / Auditor
+
+* **Email:** [alpesh.maniya@bacancy.com](mailto:alpesh.maniya@bacancy.com)
+* **Password:** Vasu4444
+* **Role:** Viewer / Auditor
+* **Access:** Read-only access to dashboards, reports, compliance status, and audit logs.
+
+> ⚠️ **Note:** These credentials are intended only for development or demonstration purposes. In production environments, users should be created through the secure registration or admin provisioning workflow.
+
 ## Stack
 
 - Next.js App Router + React + TypeScript
